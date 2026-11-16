@@ -15,7 +15,11 @@
  *  - WebGL context loss stops rendering and frees nothing twice; a restored
  *    context re-initialises the effect;
  *  - the container's rect is cached on resize, so pointer moves never force
- *    a layout read while the page is animating.
+ *    a layout read while the page is animating;
+ *  - touch screens are followed through touch events (pointer events stop
+ *    when a swipe becomes a scroll), so the light stays continuous on phones;
+ *  - the loop also stops once the finger lifts or the pointer leaves the
+ *    window (the emitter's velocity used to stay frozen, keeping it awake).
  */
 
 import {
@@ -1142,7 +1146,10 @@ const GlowCursor = ({
       render(s);
 
       const quiet = now - state.active > s.linger * 1200 + 900;
-      const resting = Math.hypot(state.emitter.vx, state.emitter.vy) < 1;
+      // SODWORKS: an emitter that is following nothing (the finger lifted,
+      // the pointer left the window) is at rest — its last velocity stays
+      // frozen, which otherwise kept the loop running forever
+      const resting = !state.ready || Math.hypot(state.emitter.vx, state.emitter.vy) < 1;
       if (quiet && resting) {
         clearTargets();
         blank();
@@ -1157,10 +1164,11 @@ const GlowCursor = ({
         raf = requestAnimationFrame(frame);
     };
 
-    const onPointerMove = (event: PointerEvent) => {
+    // the pointer (or finger) at viewport coordinates clientX/clientY
+    const track = (clientX: number, clientY: number) => {
       const rect = state.rect;
-      const x = event.clientX - rect.left;
-      const y = event.clientY - rect.top;
+      const x = clientX - rect.left;
+      const y = clientY - rect.top;
       const inside = x >= 0 && y >= 0 && x <= rect.width && y <= rect.height;
       if (!inside) {
         if (state.pointer.inside) {
@@ -1185,7 +1193,32 @@ const GlowCursor = ({
       wake();
     };
 
+    // SODWORKS: touches are followed through touch events. A touch's pointer
+    // events stop (pointercancel) as soon as the browser turns the gesture
+    // into a scroll, which froze the light mid-swipe; touchmove keeps coming
+    // while the page scrolls. Touch-type pointer events are ignored so the
+    // two inputs never fight over the same finger.
+    const onPointerMove = (event: PointerEvent) => {
+      if (event.pointerType === "touch") return;
+      track(event.clientX, event.clientY);
+    };
+
+    const onTouch = (event: TouchEvent) => {
+      const touch = event.touches[0];
+      if (touch) track(touch.clientX, touch.clientY);
+    };
+
+    const onTouchEnd = (event: TouchEvent) => {
+      if (event.touches.length) return;
+      // the finger has lifted: let the light fade where it is, and start the
+      // next touch fresh where it lands instead of streaking across to it
+      state.pointer.inside = false;
+      state.ready = false;
+      wake();
+    };
+
     const onPointerDown = (event: PointerEvent) => {
+      if (event.pointerType === "touch") return; // SODWORKS: see onTouch
       const s = settingsRef.current;
       if (!s.clickBurst || !s.enabled) return;
       const rect = state.rect;
@@ -1196,7 +1229,10 @@ const GlowCursor = ({
       wake();
     };
 
-    const onPointerLeave = () => {
+    const onPointerLeave = (event: PointerEvent) => {
+      // SODWORKS: a touch's pointer "leaves" when a scroll takes it over —
+      // that is not the finger leaving, so it must not break the trail
+      if (event.pointerType === "touch") return;
       state.pointer.inside = false;
       state.ready = false;
       wake();
@@ -1235,6 +1271,10 @@ const GlowCursor = ({
     intersection.observe(container);
     window.addEventListener("pointermove", onPointerMove, { passive: true });
     window.addEventListener("pointerdown", onPointerDown, { passive: true });
+    window.addEventListener("touchstart", onTouch, { passive: true });
+    window.addEventListener("touchmove", onTouch, { passive: true });
+    window.addEventListener("touchend", onTouchEnd, { passive: true });
+    window.addEventListener("touchcancel", onTouchEnd, { passive: true });
     document.documentElement.addEventListener("pointerleave", onPointerLeave);
     document.addEventListener("visibilitychange", onVisibility);
     resize();
@@ -1247,6 +1287,10 @@ const GlowCursor = ({
       intersection.disconnect();
       window.removeEventListener("pointermove", onPointerMove);
       window.removeEventListener("pointerdown", onPointerDown);
+      window.removeEventListener("touchstart", onTouch);
+      window.removeEventListener("touchmove", onTouch);
+      window.removeEventListener("touchend", onTouchEnd);
+      window.removeEventListener("touchcancel", onTouchEnd);
       document.documentElement.removeEventListener(
         "pointerleave",
         onPointerLeave,

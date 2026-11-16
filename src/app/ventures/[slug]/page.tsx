@@ -3,7 +3,7 @@ import { pageMetadata, pages } from "@/lib/site";
 import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { Suspense } from "react";
+import { Suspense, type CSSProperties } from "react";
 import s from "@/components/ventures/ventures.module.css";
 import { getVenture, ventures, type Venture } from "@/components/ventures/data";
 import VentureVisual from "@/components/ventures/VentureVisual";
@@ -176,7 +176,13 @@ async function VentureDetail({ params }: { params: PageProps<"/ventures/[slug]">
         {v.website && host && (
           <section className={s.visit} aria-label="Official website">
             <p className={s.visitLabel}>Official website</p>
-            <a className={s.visitLink} href={v.website} target="_blank" rel="noopener noreferrer">
+            <a
+              className={s.visitLink}
+              href={v.website}
+              target="_blank"
+              rel="noopener noreferrer"
+              style={{ "--chars": host.length } as CSSProperties}
+            >
               <span className="sw-tiles">{host}</span>
               <span className={s.visitArrow} aria-hidden="true">
                 ↗

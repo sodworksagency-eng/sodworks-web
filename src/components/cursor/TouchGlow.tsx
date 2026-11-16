@@ -16,7 +16,8 @@ type Props = {
   className?: string;
 };
 
-type Point = { x: number; y: number; t: number };
+/** A trail sample; `s` is its stroke, so separate touches never join up. */
+type Point = { x: number; y: number; t: number; s: number };
 type Bloom = { x: number; y: number; t: number };
 
 /** Below-native resolution keeps the light soft and the fill rate low. */
@@ -31,7 +32,9 @@ const rgb = (hex: string) => {
 };
 
 /**
- * TouchGlow — the touch-screen counterpart of the site's GlowCursor.
+ * TouchGlow — the fallback light for touch screens whose browser lacks
+ * WebGL2 float render targets (everywhere else, touch screens run the
+ * GlowCursor simulation itself; see SiteGlowCursor).
  *
  * The same warm light, drawn for a finger instead of a pointer: a short
  * trail that follows a moving touch and cools as it fades, with a small
@@ -55,22 +58,61 @@ export default function TouchGlow({ color, secondaryColor, linger = 0.6, classNa
     const [r2, g2, b2] = rgb(secondaryColor);
     const points: Point[] = [];
     const blooms: Bloom[] = [];
+    // the finger, and the light following it on a critically damped spring
+    // (as GlowCursor's emitter does), so the head moves continuously between
+    // the irregular touch samples instead of jumping from one to the next
+    const finger = { x: 0, y: 0, down: false };
+    const light = { x: 0, y: 0, vx: 0, vy: 0 };
+    const OMEGA = 46;
+    let stroke = 0;
     let scale = 1;
     let raf = 0;
+    let last = 0;
 
+    // Sized from the layer itself (.sw-cursor: a stable large-viewport
+    // height), and only when that size really changes: resizing a canvas
+    // clears it, so following every address-bar movement wiped the trail.
+    const layer = canvas.parentElement ?? canvas;
     const resize = () => {
-      scale = Math.min(window.devicePixelRatio || 1, MAX_DPR) * RESOLUTION;
-      canvas.width = Math.max(1, Math.round(window.innerWidth * scale));
-      canvas.height = Math.max(1, Math.round(window.innerHeight * scale));
+      const next = Math.min(window.devicePixelRatio || 1, MAX_DPR) * RESOLUTION;
+      const w = Math.max(1, Math.round(layer.clientWidth * next));
+      const h = Math.max(1, Math.round(layer.clientHeight * next));
+      if (w === canvas.width && h === canvas.height && next === scale) return;
+      scale = next;
+      canvas.width = w;
+      canvas.height = h;
     };
 
-    const frame = () => {
+    const follow = (dt: number, now: number) => {
+      const steps = Math.max(1, Math.ceil(dt / 0.004));
+      const h = dt / steps;
+      for (let k = 0; k < steps; k++) {
+        light.vx += (OMEGA * OMEGA * (finger.x - light.x) - 2 * OMEGA * light.vx) * h;
+        light.vy += (OMEGA * OMEGA * (finger.y - light.y) - 2 * OMEGA * light.vy) * h;
+        light.x += light.vx * h;
+        light.y += light.vy * h;
+      }
+      const tail = points[points.length - 1];
+      if (!tail || tail.s !== stroke || Math.hypot(light.x - tail.x, light.y - tail.y) > 0.75) {
+        points.push({ x: light.x, y: light.y, t: now, s: stroke });
+        if (points.length > MAX_POINTS) points.shift();
+      }
+    };
+
+    const frame = (ms: number) => {
       raf = 0;
-      const now = performance.now() / 1000;
+      const now = ms / 1000;
+      const dt = last ? Math.min(1 / 30, (ms - last) / 1000) : 1 / 60;
+      last = ms;
+      const moving = finger.down || Math.hypot(light.vx, light.vy) > 1;
+      if (moving) follow(dt, now);
       while (points.length && now - points[0].t > linger) points.shift();
       while (blooms.length && now - blooms[0].t > linger) blooms.shift();
       ctx.clearRect(0, 0, canvas.width, canvas.height);
-      if (!points.length && !blooms.length) return; // dark again: the loop stops
+      if (!points.length && !blooms.length && !moving) {
+        last = 0;
+        return; // dark again: the loop stops
+      }
 
       ctx.save();
       ctx.scale(scale, scale);
@@ -82,6 +124,7 @@ export default function TouchGlow({ color, secondaryColor, linger = 0.6, classNa
       for (let i = 1; i < points.length; i++) {
         const a = points[i - 1];
         const b = points[i];
+        if (a.s !== b.s) continue; // never join two separate touches
         const life = 1 - (now - b.t) / linger;
         if (life <= 0) continue;
         const fresh = life * life;
@@ -101,7 +144,7 @@ export default function TouchGlow({ color, secondaryColor, linger = 0.6, classNa
 
       // the tip: warm glow with a small white-hot centre
       const head = points[points.length - 1];
-      if (head) {
+      if (head && head.s === stroke) {
         const life = 1 - (now - head.t) / linger;
         if (life > 0) {
           const glow = ctx.createRadialGradient(head.x, head.y, 0, head.x, head.y, 34);
@@ -133,43 +176,57 @@ export default function TouchGlow({ color, secondaryColor, linger = 0.6, classNa
       if (!raf && !document.hidden) raf = requestAnimationFrame(frame);
     };
 
+    // a new touch starts its own stroke; the previous one keeps fading
     const onStart = (e: TouchEvent) => {
       const t = e.touches[0];
-      if (!t) return;
-      const now = performance.now() / 1000;
-      points.length = 0;
-      points.push({ x: t.clientX, y: t.clientY, t: now });
-      blooms.push({ x: t.clientX, y: t.clientY, t: now });
+      if (!t || e.touches.length > 1) return;
+      stroke += 1;
+      finger.x = light.x = t.clientX;
+      finger.y = light.y = t.clientY;
+      light.vx = light.vy = 0;
+      finger.down = true;
+      blooms.push({ x: t.clientX, y: t.clientY, t: performance.now() / 1000 });
       wake();
     };
     const onMove = (e: TouchEvent) => {
       const t = e.touches[0];
       if (!t) return;
-      const last = points[points.length - 1];
-      if (last && Math.hypot(t.clientX - last.x, t.clientY - last.y) < 3) return;
-      points.push({ x: t.clientX, y: t.clientY, t: performance.now() / 1000 });
-      if (points.length > MAX_POINTS) points.shift();
+      finger.x = t.clientX;
+      finger.y = t.clientY;
+      wake();
+    };
+    const onEnd = (e: TouchEvent) => {
+      if (e.touches.length) return;
+      finger.down = false;
       wake();
     };
     const onVisibility = () => {
       if (!document.hidden) return;
       cancelAnimationFrame(raf);
       raf = 0;
+      last = 0;
+      finger.down = false;
+      light.vx = light.vy = 0;
       points.length = 0;
       blooms.length = 0;
       ctx.clearRect(0, 0, canvas.width, canvas.height);
     };
 
     resize();
-    window.addEventListener("resize", resize);
+    const observer = new ResizeObserver(resize);
+    observer.observe(layer);
     window.addEventListener("touchstart", onStart, { passive: true });
     window.addEventListener("touchmove", onMove, { passive: true });
+    window.addEventListener("touchend", onEnd, { passive: true });
+    window.addEventListener("touchcancel", onEnd, { passive: true });
     document.addEventListener("visibilitychange", onVisibility);
     return () => {
       cancelAnimationFrame(raf);
-      window.removeEventListener("resize", resize);
+      observer.disconnect();
       window.removeEventListener("touchstart", onStart);
       window.removeEventListener("touchmove", onMove);
+      window.removeEventListener("touchend", onEnd);
+      window.removeEventListener("touchcancel", onEnd);
       document.removeEventListener("visibilitychange", onVisibility);
     };
   }, [color, secondaryColor, linger]);

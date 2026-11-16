@@ -30,13 +30,18 @@
    here, on the fixed layer itself, because a fixed element with a
    z-index isolates its children: a blend on the canvas would only meet
    the empty overlay, never the page beneath it.
+   Its height is the large viewport (lvh), which does not change as a
+   mobile browser's address bar slides in and out while scrolling — so
+   the light is never resized, and its trail never reset, mid-gesture.
    ------------------------------------------------------------------ */
 .sw-cursor {
   position: fixed;
-  inset: 0;
+  top: 0;
+  left: 0;
   z-index: 45;
-  width: auto;
-  height: auto;
+  width: 100%;
+  height: 100vh;
+  height: 100lvh;
   pointer-events: none;
   user-select: none;
   mix-blend-mode: screen;

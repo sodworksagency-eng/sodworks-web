@@ -896,6 +896,7 @@
   filter: saturate(0.82) contrast(1.14) brightness(0.9);
 }
 .visit {
+  container-type: inline-size;
   margin-top: clamp(96px, 10vw, 150px);
   padding-block: 2.2rem;
   border-top: 2px solid var(--rule-bronze);
@@ -910,13 +911,21 @@
 }
 .visitLink {
   display: inline-flex;
+  flex-wrap: wrap; /* on the narrowest phones the arrow may drop below */
   align-items: baseline;
   gap: 1rem;
   font-size: 24px;
-  font-size: round(down, clamp(24px, 4vw, 56px), 8px);
+  /* the domain is set in a monospaced pixel face (1em per character): on
+     narrow screens it shrinks to fit its line — never wider than the page,
+     never below a readable 16px — staying on the 8px grid the tiles need */
+  font-size: max(16px, min(clamp(24px, 4vw, 56px), calc(100cqw / (var(--chars, 12) + 2))));
+  font-size: max(16px, round(down, min(clamp(24px, 4vw, 56px), calc(100cqw / (var(--chars, 12) + 2))), 8px));
   line-height: 1.25;
   color: var(--ink-ivory);
   text-decoration: none;
+  /* a finger-sized hit area; the negative margin keeps the layout unchanged */
+  padding-block: 12px;
+  margin-block: -12px;
 }
 .visitArrow {
   font-family: var(--type);
