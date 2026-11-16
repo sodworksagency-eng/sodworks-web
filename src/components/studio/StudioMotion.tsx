@@ -8,6 +8,7 @@ import FounderDust from "./FounderDust";
 import { studio } from "./content";
 import { afterLoader } from "@/components/loader/ready";
 import { getArrival, reopenedPartWay } from "@/lib/arrival";
+import { reveal } from "@/lib/motion";
 
 gsap.registerPlugin(useGSAP, ScrollTrigger);
 
@@ -195,16 +196,25 @@ export default function StudioMotion({ children, className }: { children: ReactN
               )
               .to(beam, { opacity: 0, duration: 0.7, ease: "sine.in" }, revealAt + 0.6)
               // the founders' table comes up as if a lamp were turned on over it
+              // (the story's reveal: at the site's reveal pace, from the same
+              // moments of the opening)
               .fromTo(
                 storyArt,
                 { opacity: 0, scale: 1.035, filter: "brightness(0.35)" },
-                { opacity: 1, scale: 1, filter: "brightness(1)", duration: 2.2, ease: "power2.out", clearProps: "filter,transform" },
+                {
+                  opacity: 1,
+                  scale: 1,
+                  filter: "brightness(1)",
+                  duration: reveal(2.2),
+                  ease: "power2.out",
+                  clearProps: "filter,transform",
+                },
                 revealAt + 0.35,
               )
               .fromTo(
                 storyLines,
                 { opacity: 0, y: 22 },
-                { opacity: 1, y: 0, duration: 1.1, stagger: 0.12, ease: "power3.out" },
+                { opacity: 1, y: 0, duration: reveal(1.1), stagger: reveal(0.12), ease: "power3.out" },
                 revealAt + 0.75,
               );
           })

@@ -581,13 +581,13 @@
 /* Strip mode reveal (touch screens with motion): stages unmask as they snap. */
 .exhibition[data-strip-motion] [data-reveal] {
   clip-path: inset(0 0 0 100%);
-  transition: clip-path 1.2s cubic-bezier(0.2, 0.7, 0.1, 1);
+  transition: clip-path calc(1.2s / var(--reveal-speed)) cubic-bezier(0.2, 0.7, 0.1, 1);
 }
 .exhibition[data-strip-motion] [data-panel][data-in] [data-reveal] {
   clip-path: inset(0 0 0 0);
 }
 .exhibition[data-strip-motion] [data-panel][data-in] [data-reveal-delay] {
-  transition-delay: 0.15s;
+  transition-delay: calc(0.15s / var(--reveal-speed));
 }
 
 /* ------------------------------------------------------------- artwork */
@@ -791,7 +791,7 @@
 }
 .detailHead {
   margin-top: clamp(40px, 6vw, 80px);
-  animation: settle 1.2s cubic-bezier(0.2, 0.7, 0.1, 1) both;
+  animation: settle calc(1.2s / var(--reveal-speed)) cubic-bezier(0.2, 0.7, 0.1, 1) both;
 }
 .detailTitle {
   margin: clamp(20px, 2.4vw, 32px) 0 0;
@@ -812,7 +812,7 @@
 .detailStage {
   margin-top: clamp(56px, 7vw, 100px);
   max-width: 1100px;
-  animation: settle 1.4s 0.15s cubic-bezier(0.2, 0.7, 0.1, 1) both;
+  animation: settle calc(1.4s / var(--reveal-speed)) calc(0.15s / var(--reveal-speed)) cubic-bezier(0.2, 0.7, 0.1, 1) both;
 }
 .detailGrid {
   display: grid;

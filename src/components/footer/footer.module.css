@@ -24,7 +24,7 @@
   pointer-events: none;
   background: radial-gradient(ellipse 46% 52% at 22% 96%, rgb(255 184 112 / 0.1), transparent 72%);
   opacity: 0;
-  transition: opacity 2.4s ease 0.2s;
+  transition: opacity calc(2.4s / var(--reveal-speed)) ease calc(0.2s / var(--reveal-speed));
 }
 .footer[data-in] .lamp {
   opacity: 1;
@@ -78,7 +78,7 @@
   /* built row by row: eight pixel rows, eight steps */
   clip-path: inset(100% 0 0 0);
   transition:
-    clip-path 1.4s steps(8, end) 0.35s,
+    clip-path calc(1.4s / var(--reveal-speed)) steps(8, end) calc(0.35s / var(--reveal-speed)),
     --lit 0.5s ease;
 }
 @property --lit {
@@ -260,8 +260,8 @@
   opacity: 0;
   transform: translateY(16px);
   transition:
-    opacity 1s ease,
-    transform 1.2s cubic-bezier(0.2, 0.7, 0.1, 1);
+    opacity calc(1s / var(--reveal-speed)) ease,
+    transform calc(1.2s / var(--reveal-speed)) cubic-bezier(0.2, 0.7, 0.1, 1);
 }
 .footer[data-in] .tagline,
 .footer[data-in] .side > .block,
@@ -270,13 +270,13 @@
   transform: none;
 }
 .footer[data-in] .side > .block:nth-child(1) {
-  transition-delay: 0.15s;
+  transition-delay: calc(0.15s / var(--reveal-speed));
 }
 .footer[data-in] .side > .block:nth-child(2) {
-  transition-delay: 0.3s;
+  transition-delay: calc(0.3s / var(--reveal-speed));
 }
 .footer[data-in] .base {
-  transition-delay: 0.9s;
+  transition-delay: calc(0.9s / var(--reveal-speed));
 }
 
 @media (prefers-reduced-motion: reduce) {

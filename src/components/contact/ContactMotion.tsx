@@ -7,6 +7,7 @@ import HandsScene, { type SceneState } from "./HandsScene";
 import { contact } from "./content";
 import { afterLoader } from "@/components/loader/ready";
 import { getArrival, reopenedPartWay } from "@/lib/arrival";
+import { reveal } from "@/lib/motion";
 
 gsap.registerPlugin(useGSAP);
 
@@ -155,10 +156,18 @@ export default function ContactMotion({ children, className }: { children: React
               .to(skipBtn, { autoAlpha: 0, duration: 0.4 }, T + 1)
               .add(unlock, T + 2.2)
               .to(opening, { autoAlpha: 0, duration: 1.3, ease: "sine.inOut" }, T + 2.3)
+              // the interface rises in (at the site's reveal pace)
               .fromTo(
                 rise,
                 { opacity: 0, y: 26 },
-                { opacity: 1, y: 0, duration: 1.1, stagger: 0.08, ease: "power3.out", clearProps: "transform,opacity" },
+                {
+                  opacity: 1,
+                  y: 0,
+                  duration: reveal(1.1),
+                  stagger: reveal(0.08),
+                  ease: "power3.out",
+                  clearProps: "transform,opacity",
+                },
                 T + 2.6,
               );
           })

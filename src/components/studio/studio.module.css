@@ -411,17 +411,17 @@
   clip-path: inset(0 50% 0 50%);
   opacity: 0;
   transition:
-    clip-path 0.7s cubic-bezier(0.2, 0.7, 0.1, 1) calc(var(--i) * 0.16s + 0.1s),
-    opacity 0.3s ease calc(var(--i) * 0.16s + 0.1s);
+    clip-path calc(0.7s / var(--reveal-speed)) cubic-bezier(0.2, 0.7, 0.1, 1) calc((var(--i) * 0.16s + 0.1s) / var(--reveal-speed)),
+    opacity calc(0.3s / var(--reveal-speed)) ease calc((var(--i) * 0.16s + 0.1s) / var(--reveal-speed));
 }
 .name {
   opacity: 0;
-  transition: opacity 0.5s ease calc(var(--i) * 0.16s + 0.5s);
+  transition: opacity calc(0.5s / var(--reveal-speed)) ease calc((var(--i) * 0.16s + 0.5s) / var(--reveal-speed));
 }
 .stem {
   transform: scaleY(0);
   transform-origin: top;
-  transition: transform 0.5s cubic-bezier(0.2, 0.7, 0.1, 1) calc(var(--i) * 0.16s + 0.45s);
+  transition: transform calc(0.5s / var(--reveal-speed)) cubic-bezier(0.2, 0.7, 0.1, 1) calc((var(--i) * 0.16s + 0.45s) / var(--reveal-speed));
 }
 .crew[data-in] .plate {
   clip-path: inset(-2px -2px -2px -2px);

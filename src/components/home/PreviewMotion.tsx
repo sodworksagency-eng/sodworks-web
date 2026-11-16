@@ -4,6 +4,7 @@ import { useRef, type ReactNode } from "react";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { useGSAP } from "@gsap/react";
+import { REVEAL_SPEED } from "@/lib/motion";
 
 gsap.registerPlugin(useGSAP, ScrollTrigger);
 
@@ -26,6 +27,7 @@ export default function PreviewMotion({ children, className }: { children: React
           // starts as the section enters, so the images are open by the time
           // they reach the middle of the screen, however briskly it is scrolled
           .timeline({ scrollTrigger: { trigger: section, start: "top 88%", toggleActions: "play none none none" } })
+          .timeScale(REVEAL_SPEED) // authored timings below; played at the site's reveal pace
           .from(q("[data-pv-line]"), { yPercent: 110, duration: 1.2, ease: "power4.out", stagger: 0.12 })
           .from(q("[data-pv-rise]"), { opacity: 0, y: 16, duration: 1, ease: "power3.out", stagger: 0.1 }, 0.2)
           .fromTo(

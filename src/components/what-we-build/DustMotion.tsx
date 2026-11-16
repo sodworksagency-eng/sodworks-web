@@ -4,6 +4,7 @@ import { useRef, type ReactNode } from "react";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { useGSAP } from "@gsap/react";
+import { REVEAL_SPEED } from "@/lib/motion";
 import DustField from "./dust/DustField";
 import { page } from "./content";
 
@@ -137,6 +138,7 @@ export default function DustMotion({ children, className }: { children: ReactNod
             // Entry: born from dust.
             const entry = gsap
               .timeline({ scrollTrigger: { trigger: el, start: "top 70%", toggleActions: "play none none none" } })
+              .timeScale(REVEAL_SPEED) // authored timings below; played at the site's reveal pace
               .to(f.params, { assemble: 1, duration: 5.6, ease: "none" }, 0)
               .to(linesA, { yPercent: 0, duration: 1.3, ease: "power4.out", stagger: 0.11 }, 3.1)
               .to(fadeA, { opacity: 1, y: 0, duration: 1.2, ease: "power3.out", stagger: 0.1 }, 3.5);

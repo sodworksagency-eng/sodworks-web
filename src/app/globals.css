@@ -30,6 +30,13 @@
   --sw-lamp: rgb(255 184 112); /* the hero's warm light, for glows */
 }
 
+/* The pace of the site's reveals: CSS reveal durations and delays are
+   written as authored ÷ --reveal-speed (src/lib/motion.ts carries the same
+   factor for the GSAP reveals). */
+:root {
+  --reveal-speed: 1.3;
+}
+
 :root {
   color-scheme: dark;
 }

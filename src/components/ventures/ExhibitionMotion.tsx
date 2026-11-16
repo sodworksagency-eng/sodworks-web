@@ -4,6 +4,7 @@ import { useRef, type ReactNode } from "react";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { useGSAP } from "@gsap/react";
+import { REVEAL_SPEED, reveal } from "@/lib/motion";
 
 gsap.registerPlugin(useGSAP, ScrollTrigger);
 
@@ -49,7 +50,8 @@ export default function ExhibitionMotion({ children, className }: { children: Re
       // ── Intro (any screen, motion allowed)
       mm.add("(prefers-reduced-motion: no-preference)", () => {
         gsap
-          .timeline({ delay: 0.25 })
+          .timeline({ delay: reveal(0.25) })
+          .timeScale(REVEAL_SPEED) // authored timings below; played at the site's reveal pace
           .from(q("[data-intro-id]"), { opacity: 0, y: 12, duration: 1, ease: "power2.out" })
           .from(q("[data-intro-line]"), { yPercent: 110, duration: 1.3, ease: "power4.out", stagger: 0.12 }, 0.25)
           .from(q("[data-intro-fade]"), { opacity: 0, y: 14, duration: 1.1, ease: "power3.out", stagger: 0.12 }, 0.9);
@@ -91,8 +93,8 @@ export default function ExhibitionMotion({ children, className }: { children: Re
               {
                 clipPath: "inset(0% 0% 0% 0%)",
                 ease: "power3.out",
-                duration: 1.4,
-                delay: first ? 0.6 + delay : delay,
+                duration: reveal(1.4),
+                delay: reveal(first ? 0.6 + delay : delay),
                 scrollTrigger: first
                   ? undefined
                   : { trigger: panel, containerAnimation: travel, start: "left 72%", toggleActions: "play none none reverse" },
@@ -113,12 +115,13 @@ export default function ExhibitionMotion({ children, className }: { children: Re
           });
           // Typography sets in independently of the images.
           const text = gsap.timeline({
-            delay: first ? 0.9 : 0,
+            delay: reveal(first ? 0.9 : 0),
             scrollTrigger: first
               ? undefined
               : { trigger: panel, containerAnimation: travel, start: "left 62%", toggleActions: "play none none reverse" },
           });
           text
+            .timeScale(REVEAL_SPEED) // authored timings below; played at the site's reveal pace
             .from(lines, { yPercent: 110, duration: 1.1, ease: "power4.out", stagger: 0.1 })
             .from(rises, { opacity: 0, y: 16, duration: 0.9, ease: "power3.out", stagger: 0.1 }, 0.25);
         });
