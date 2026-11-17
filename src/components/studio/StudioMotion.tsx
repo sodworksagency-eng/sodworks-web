@@ -7,7 +7,6 @@ import { useGSAP } from "@gsap/react";
 import FounderDust from "./FounderDust";
 import { studio } from "./content";
 import { afterLoader } from "@/components/loader/ready";
-import { getArrival, reopenedPartWay } from "@/lib/arrival";
 import { reveal } from "@/lib/motion";
 
 gsap.registerPlugin(useGSAP, ScrollTrigger);
@@ -25,8 +24,9 @@ gsap.registerPlugin(useGSAP, ScrollTrigger);
  *      light, which opens to reveal the founding story.
  *
  * The page is held still for the length of the sequence (any scroll, key or
- * touch fast-forwards it). With reduced motion, after a history step back,
- * or if the page is reopened part-way down, the story is simply there.
+ * touch fast-forwards it). It plays on every entry into the page, however
+ * the visitor arrives; with reduced motion, or a link straight to a founder,
+ * the story is simply there.
  *
  * Further down, the player tags above each founder render in as they come
  * into view.
@@ -55,14 +55,14 @@ export default function StudioMotion({ children, className }: { children: ReactN
       });
 
       mm.add("(prefers-reduced-motion: no-preference)", () => {
-        // a link straight to a founder (/studio#raghav), a history step back
-        // to the page, or the page reopened part-way down: no opening, just
-        // the page. Every other arrival plays it (see lib/arrival).
+        // Every entry into the page plays the opening — first visit, return,
+        // reload, back or forward. Only a link straight to a founder
+        // (/studio#raghav) goes directly to the page.
         const hash = decodeURIComponent(location.hash.slice(1));
         const target = hash ? document.getElementById(hash) : null;
-        if (target || getArrival() === "pop" || reopenedPartWay()) {
+        if (target) {
           el.dataset.mode = "static";
-          if (target) requestAnimationFrame(() => target.scrollIntoView({ block: "center" }));
+          requestAnimationFrame(() => target.scrollIntoView({ block: "center" }));
           return;
         }
         el.dataset.mode = "cinematic";
@@ -81,10 +81,22 @@ export default function StudioMotion({ children, className }: { children: ReactN
 
         html.classList.add("hero-intro-lock");
         window.scrollTo(0, 0);
+        // The opening plays at the top of the page and holds it there until it
+        // releases the page. After a back or forward step the browser restores
+        // the previous scroll position once the route has rendered — at a
+        // moment that varies by browser — which would otherwise leave the
+        // opening playing above the screen.
+        const holdTop = () => {
+          if (window.scrollY !== 0) window.scrollTo(0, 0);
+        };
+        window.addEventListener("scroll", holdTop, { passive: true });
 
         let tl: gsap.core.Timeline | null = null;
         let cancelled = false;
-        const unlock = () => html.classList.remove("hero-intro-lock");
+        const unlock = () => {
+          window.removeEventListener("scroll", holdTop);
+          html.classList.remove("hero-intro-lock");
+        };
         const hurry = () => tl?.timeScale(3.5);
         const keys = (e: KeyboardEvent) => {
           if ([" ", "ArrowDown", "PageDown", "Enter", "End"].includes(e.key)) hurry();
@@ -227,7 +239,15 @@ export default function StudioMotion({ children, className }: { children: ReactN
 
         return () => {
           cancelled = true;
-          tl?.kill();
+          // Revert, not just kill: the timeline is built asynchronously (after
+          // the photograph decodes), outside the GSAP context that useGSAP
+          // reverts, so killing it left its inline styles behind — the canvas
+          // at opacity 0, the veil gone. Next.js keeps a visited route mounted
+          // and re-runs this effect when the visitor returns, and the replayed
+          // opening then animated an invisible canvas: a black screen.
+          // revert() returns every element to its state before the opening.
+          tl?.revert();
+          tl = null;
           stopListening();
           unlock();
           story.style.removeProperty("--open");

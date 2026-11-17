@@ -155,6 +155,9 @@ export default function ContactMotion({ children, className }: { children: React
               )
               .to(skipBtn, { autoAlpha: 0, duration: 0.4 }, T + 1)
               .add(unlock, T + 2.2)
+              // once the page is released, the fading opening lets clicks
+              // through to the site index it still covers
+              .set(opening, { pointerEvents: "none" }, T + 2.2)
               .to(opening, { autoAlpha: 0, duration: 1.3, ease: "sine.inOut" }, T + 2.3)
               // the interface rises in (at the site's reveal pace)
               .fromTo(
@@ -179,7 +182,11 @@ export default function ContactMotion({ children, className }: { children: React
 
         return () => {
           cancelled = true;
-          tl?.kill();
+          // revert, not just kill: the timeline is built after the image
+          // decodes, outside the GSAP context, and a revisited route replays
+          // the opening — it must start from the untouched initial state
+          tl?.revert();
+          tl = null;
           stopListening();
           skipBtn.removeEventListener("click", onSkip);
           unlock();
