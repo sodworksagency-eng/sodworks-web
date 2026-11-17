@@ -211,6 +211,8 @@
   display: flex;
   flex-direction: column;
   justify-content: center;
+  /* centred while it fits; never pushed above the top edge when it doesn't */
+  justify-content: safe center;
   /* clear the site index bar */
   padding-top: var(--nav-h);
 }
@@ -365,6 +367,15 @@
   }
   .desc {
     max-width: 48ch;
+  }
+}
+
+/* Tablet: the stacked stage must fit one screen, so the image takes the
+   height left after the heading and text (about 690px), up to its usual
+   600px — otherwise the heading was pushed above the top edge. */
+@media (min-width: 700px) and (max-width: 1023px) {
+  .chapters[data-pinned] .visual {
+    width: min(100%, 600px, max(240px, calc((100svh - var(--nav-h) - 690px) * 1.29)));
   }
 }
 
